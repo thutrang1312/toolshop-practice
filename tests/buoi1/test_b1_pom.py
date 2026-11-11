@@ -15,6 +15,7 @@ import pytest
 from playwright.sync_api import expect
 
 from pages.home_page import HomePage
+from pages.login_page import LoginPage
 
 
 # ---------------------------------------------------------------- B1.1 (together with the teacher)
@@ -38,7 +39,10 @@ def test_b1_2_search_unknown_keyword_shows_no_results_message(page):
     Precondition: none.
     Expected: the message 'There are no products found.' and zero product cards."""
     # TODO: search "zzz-no-such-tool", then 2 expects (message text, product count 0)
-    raise NotImplementedError("B1.2")
+    home = HomePage(page).open().search("zzz-no-such-tool")
+    expect(home.no_results).to_have_text("There are no products found.")
+    expect(home.product_names).to_have_count(0)
+
 
 
 # ---------------------------------------------------------------- B1.3
@@ -47,7 +51,11 @@ def test_b1_3_product_add_quantity_three_updates_cart_badge(page):
     Precondition: product 'Claw Hammer' exists.
     Expected: toast 'Product added to shopping cart' and the cart badge shows 3."""
     # TODO: HomePage(page).open().open_product("Claw Hammer") ... add_to_cart(quantity=3)
-    raise NotImplementedError("B1.3")
+    home = HomePage(page).open()
+    product = home.open_product("Claw Hammer")
+    product.add_to_cart(quantity=3)
+    expect(product.toast).to_have_text("Product added to shopping cart.")
+    expect(product.cart_quantity).to_have_text("3")
 
 
 # ---------------------------------------------------------------- B1.4
@@ -57,7 +65,20 @@ def test_b1_4_cart_line_price_equals_unit_price_times_quantity(page):
     Expected: line price = unit price x 2 and total = sum of the lines."""
     # TODO: read the unit price on the product page BEFORE adding, then go_to_cart()
     # Hint: compare floats with pytest.approx
-    raise NotImplementedError("B1.4")
+    home = HomePage(page).open()
+    product = home.open_product("Combination Pliers")
+    unit_price = product.price()
+
+    product.add_to_cart(quantity=2)
+    expect(product.cart_quantity).to_have_text("2")
+
+    cart = product.go_to_cart()
+    expect(cart.product_titles).to_be_visible()
+
+    line_totals = cart.line_totals()
+    assert line_totals[0] == pytest.approx(unit_price * 2)
+    assert cart.total_value() == pytest.approx(sum(line_totals))
+
 
 
 # ---------------------------------------------------------------- B1.5
@@ -67,14 +88,19 @@ def test_b1_5_login_wrong_password_shows_error(page):
     logins (failed_login_attempts) and can lock it for the whole class.
     Expected: 'Invalid email or password' and the URL still ends with /auth/login."""
     # TODO: rewrite test_spaghetti_login_wrong_password with LoginPage
-    raise NotImplementedError("B1.5")
+    login = LoginPage(page).open().login("nobody-here@example.com", "Wrong-Password-123")
+    expect(login.error).to_contain_text("Invalid email or password")
+    expect(page).to_have_url(re.compile(r"/auth/login$"))
 
 
 def test_b1_5_login_empty_form_shows_required_errors(page):
     """Goal: client-side validation.
     Precondition: none.
     Expected: 'Email is required' and 'Password is required'."""
-    raise NotImplementedError("B1.5")
+    login = LoginPage(page).open()
+    login.submit_button.click()
+    expect(login.email_error).to_have_text("Email is required")
+    expect(login.password_error).to_have_text("Password is required")
 
 
 # ---------------------------------------------------------------- B1.6
@@ -83,8 +109,10 @@ def test_b1_6_cart_continue_shopping_returns_to_home(page):
     Precondition: none.
     Expected: after 'Continue Shopping' the product grid is visible again."""
     # TODO: one chain: HomePage(page).open().open_product("Hammer").add_to_cart().go_to_cart()
-    raise NotImplementedError("B1.6")
-
+    cart = HomePage(page).open().open_product("Hammer").add_to_cart().go_to_cart()
+    cart.continue_shopping.click()
+    expect(HomePage(page).product_names.first).to_be_visible()
+    
 
 # ---------------------------------------------------------------- B1.7 (challenge)
 @pytest.mark.parametrize("order", ["price,asc", "price,desc"])
@@ -93,4 +121,10 @@ def test_b1_7_sort_by_price_orders_products(page, order):
     Precondition: none.
     Expected: prices on the first page are sorted in the chosen direction."""
     # TODO: sort_by(order), wait for the element data-test="sorting_completed", then compare with sorted()
-    raise NotImplementedError("B1.7")
+    home = HomePage(page).open()
+    expect(home.product_names.first).to_be_visible()
+    home.sort_by(order)
+    expect(home.sorting_completed).to_be_visible()
+    prices = home.prices()
+    assert prices == sorted(prices, reverse=order.endswith("desc")), prices
+

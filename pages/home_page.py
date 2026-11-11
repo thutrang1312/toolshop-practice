@@ -1,5 +1,7 @@
 import re
 
+from pytest_playwright.pytest_playwright import page
+
 from pages.base_page import BasePage
 
 # PROD loads the grid with "QUERY /products", BUGGY with "GET /products?...". Not /products/search.
@@ -14,8 +16,17 @@ class HomePage(BasePage):
         self.search_box = page.get_by_test_id("search-query")
         self.search_result_count = page.get_by_test_id("search-result-count")
         # TODO B1.1: search_button, search_caption, search_completed, product_names
+        self.search_button = page.get_by_test_id("search-submit")
+        self.search_caption = page.get_by_test_id("search-caption")
+        self.search_completed = page.get_by_test_id("search_completed")
+        self.product_names = page.get_by_test_id("product-name")
         # TODO B1.2: no_results
+        self.no_results = page.get_by_test_id("no-results")
+
         # TODO B1.7: sort_select, product_prices
+        self.sort_select = page.get_by_test_id("sort")
+        self.sorting_completed = page.get_by_test_id("sorting_completed")
+        self.product_prices = page.get_by_test_id("product-price")
         # TODO B2/B4 (later): price_slider_max = page.get_by_role("slider").nth(1)
 
     def open(self):
@@ -30,12 +41,15 @@ class HomePage(BasePage):
 
     def search(self, keyword: str):
         # TODO B1.1: fill the box, click the button, return self
-        raise NotImplementedError("B1.1")
+        self.search_box.fill(keyword)
+        self.search_button.click()
+        return self
 
     def sort_by(self, value: str):
         """value: name,asc | name,desc | price,asc | price,desc"""
         # TODO B1.7
-        raise NotImplementedError("B1.7")
+        self.sort_select.select_option(value)
+        return self
 
     def product_card(self, name: str):
         # Exact name match: "Pliers" must not match "Combination Pliers".
@@ -43,9 +57,9 @@ class HomePage(BasePage):
 
     def open_product(self, name: str):
         from pages.product_page import ProductPage
-
+        self.product_card(name).click()
         # TODO B1.3: click the card of that product, return a ProductPage
-        raise NotImplementedError("B1.3")
+        return ProductPage(self.page)
 
     def prices(self) -> list[float]:
         return [float(p.replace("$", "")) for p in self.product_prices.all_inner_texts()]

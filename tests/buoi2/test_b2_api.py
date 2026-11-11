@@ -32,6 +32,7 @@ def test_b2_2_products_first_page_has_pagination_and_product_shape(api):
     Expected: keys current_page/data/per_page/total/last_page, 0 < len(data) <= per_page,
     every product has id (str or int), a non-empty name and a price > 0.
     Rule: NO absolute numbers (PROD has 50 products, BUGGY 26)."""
+    
     raise NotImplementedError("B2.2")
 
 
